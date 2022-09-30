@@ -1,5 +1,7 @@
 package resume_stack;
 
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -10,12 +12,28 @@ import java.util.stream.Collectors;
 
 public class Main {
 
-    public static void main(String[] args) {
-        List<Integer> terms = dataFromLine();
-
+    public static void main(String[] args) throws FileNotFoundException {
         List<Integer> salariesFirstStack = new ArrayList<>();
         List<Integer> salariesSecondStack = new ArrayList<>();
-        fillStackSalary(terms, salariesFirstStack, salariesSecondStack);
+
+        Scanner sc = new Scanner(System.in);
+//        Scanner sc = new Scanner(new FileReader("test.txt"));
+
+        String line = sc.nextLine();
+        List<Integer> terms = toIntArr(line);
+        while (sc.hasNextLine()) {
+            line = sc.nextLine();
+            List<Integer> salaries = toIntArr(line);
+            Integer salaryFirstStack = salaries.get(0);
+            if (salaryFirstStack != null) {
+                salariesFirstStack.add(salaryFirstStack);
+            }
+            Integer salarySecondStack = salaries.get(1);
+            if (salarySecondStack != null) {
+                salariesSecondStack.add(salarySecondStack);
+            }
+        }
+
         Integer maxSalaryLimit = terms.get(2);
 
         Map<Integer, Integer> amountBySumFromFirstStack = getAmountResumeBySum(salariesFirstStack, maxSalaryLimit);
@@ -55,25 +73,7 @@ public class Main {
         return amountResumeBySumSalary;
     }
 
-    private static void fillStackSalary(List<Integer> terms, List<Integer> salariesFirstStack,
-                                        List<Integer> salariesSecondStack) {
-        int amountLineSalaries = Math.max(terms.get(0), terms.get(1));
-        for (int i = 0; i < amountLineSalaries; i++) {
-            List<Integer> salariesLine = dataFromLine();
-            Integer salaryFirstStack = salariesLine.get(0);
-            if (salaryFirstStack != null) {
-                salariesFirstStack.add(salaryFirstStack);
-            }
-            Integer salarySecondStack = salariesLine.get(1);
-            if (salarySecondStack != null) {
-                salariesSecondStack.add(salarySecondStack);
-            }
-        }
-    }
-
-    private static List<Integer> dataFromLine() {
-        Scanner sc = new Scanner(System.in);
-        String line = sc.nextLine();
+    private static List<Integer> toIntArr(String line) {
         String[] dataArr = line.split(" ");
         return Arrays.stream(dataArr)
                 .map(data -> isNumber(data) ? Integer.parseInt(data) : null)
