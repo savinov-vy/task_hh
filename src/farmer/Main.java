@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class Main {
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) {
         List<Point> points = new ArrayList<>();
 
         points.add(Point.of(0, 0, false));
@@ -40,7 +40,71 @@ public class Main {
         setRegionAllPoints(Arrays.asList(firstPointFirstRegion), points, 1);
         Point point = setFirstPoint(points, 2);
         setRegionAllPoints(Arrays.asList(point), points, 2);
-        System.out.println(points);
+        Integer sumFertileInFirstRegion = getSumFertilePointInRegion(points, 1);
+        Integer sumFertileInSecondRegion = getSumFertilePointInRegion(points, 2);
+        Integer sumAllPointsInFirstRegion = getSumAllPointInRegion(points, 1);
+        Integer sumAllPointsInSecondRegion = getSumAllPointInRegion(points, 2);
+
+        Integer result = selectBestAreaAndGetCountPoint(sumFertileInFirstRegion, sumAllPointsInFirstRegion,
+                sumFertileInSecondRegion, sumAllPointsInSecondRegion);
+        System.out.println(result);
+    }
+
+    private static Integer selectBestAreaAndGetCountPoint(Integer sumFertileInFirstRegion,
+                                                          Integer sumAllPointsInFirstRegion,
+                                                          Integer sumFertileInSecondRegion,
+                                                          Integer sumAllPointsInSecondRegion) {
+        double effectivenessFirstRegion = (double) sumFertileInFirstRegion / sumAllPointsInFirstRegion;
+        double effectivenessSecondRegion = (double) sumFertileInSecondRegion / sumAllPointsInSecondRegion;
+        if (effectivenessFirstRegion > effectivenessSecondRegion) {
+            return sumAllPointsInFirstRegion;
+        } else if (effectivenessFirstRegion == effectivenessSecondRegion) {
+            return sumAllPointsInFirstRegion >= sumAllPointsInSecondRegion ? sumAllPointsInFirstRegion :
+                    sumAllPointsInSecondRegion;
+        } else {
+            return sumAllPointsInSecondRegion;
+        }
+    }
+    
+    private static Integer getSumFertilePointInRegion(List<Point> allPoints, Integer regionNumber) {
+        long count = allPoints.stream()
+                .filter(point -> point.isFertile() && point.getRegionNumber() == regionNumber)
+                .count();
+        return (int) count;
+    }
+
+    private static Integer getSumAllPointInRegion(List<Point> allPoints, Integer regionNumber) {
+        Integer maxHorizontalCoordinate = getMaxHorizontalCoordinate(allPoints, regionNumber);
+        Integer minHorizontalCoordinate = getMinHorizontalCoordinate(allPoints, regionNumber);
+        Integer amountPointHorizontalBorder = maxHorizontalCoordinate - minHorizontalCoordinate + 1;
+        Integer maxVerticalCoordinate = getMaxVerticalCoordinate(allPoints, regionNumber);
+        Integer minVerticalCoordinate = getMinVerticalCoordinate(allPoints, regionNumber);
+        Integer amountPointVerticalBorder = maxVerticalCoordinate - minVerticalCoordinate + 1;
+        return amountPointHorizontalBorder * amountPointVerticalBorder;
+    }
+
+    private static Integer getMaxHorizontalCoordinate(List<Point> allPoints, Integer regionNumber) {
+    return allPoints.stream()
+            .filter(point -> point.getRegionNumber() == regionNumber)
+            .mapToInt(Point::getX).max().getAsInt();
+    }
+
+    private static Integer getMinHorizontalCoordinate(List<Point> allPoints, Integer regionNumber) {
+        return allPoints.stream()
+                .filter(point -> point.getRegionNumber() == regionNumber)
+                .mapToInt(Point::getX).min().getAsInt();
+    }
+
+    private static Integer getMaxVerticalCoordinate(List<Point> allPoints, Integer regionNumber) {
+        return allPoints.stream()
+                .filter(point -> point.getRegionNumber() == regionNumber)
+                .mapToInt(Point::getY).max().getAsInt();
+    }
+
+    private static Integer getMinVerticalCoordinate(List<Point> allPoints, Integer regionNumber) {
+        return allPoints.stream()
+                .filter(point -> point.getRegionNumber() == regionNumber)
+                .mapToInt(Point::getY).min().getAsInt();
     }
 
     private static Point setFirstPoint(List<Point> list, Integer regionNumber) {
@@ -157,4 +221,3 @@ class Point {
         this.regionNumber = regionNumber;
     }
 }
-
