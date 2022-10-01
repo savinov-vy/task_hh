@@ -13,17 +13,17 @@ import java.util.stream.Collectors;
 public class Main {
 
     public static void main(String[] args) throws FileNotFoundException {
-        List<Integer> salariesFirstStack = new ArrayList<>(2);
-        List<Integer> salariesSecondStack = new ArrayList<>(2);
+        long start = System.currentTimeMillis();
+        List<Integer> salariesFirstStack = new ArrayList<>(10000);
+        List<Integer> salariesSecondStack = new ArrayList<>(10000);
 
-        Scanner sc = new Scanner(System.in);
-//        Scanner sc = new Scanner(new FileReader("test.txt"));
+//        Scanner sc = new Scanner(System.in);
+        Scanner sc = new Scanner(new FileReader("test.txt"));
 
         String line = sc.nextLine();
         List<Integer> terms = toIntArr(line);
         int maxSalaryLimit = terms.get(2);
-        int sumMinSalaryFromLine = 0;
-        while (sc.hasNextLine() && sumMinSalaryFromLine <= maxSalaryLimit) {
+        while (sc.hasNextLine()) {
             line = sc.nextLine();
             List<Integer> salaries = toIntArr(line);
             Integer salaryFirstStack = salaries.get(0);
@@ -34,13 +34,6 @@ public class Main {
             if (salarySecondStack != null) {
                 salariesSecondStack.add(salarySecondStack);
             }
-            if (salaryFirstStack != null && salarySecondStack != null) {
-                sumMinSalaryFromLine += Math.min(salaryFirstStack, salarySecondStack);
-            } else if (salaryFirstStack != null) {
-                sumMinSalaryFromLine += salaryFirstStack;
-            } else if (salarySecondStack != null) {
-                sumMinSalaryFromLine += salarySecondStack;
-            }
         }
 
 
@@ -48,6 +41,8 @@ public class Main {
         Map<Short, Integer> amountBySumFromSecondStack = getAmountResumeBySum(salariesSecondStack, maxSalaryLimit);
         short result = getMaxCountResumeBySum(amountBySumFromFirstStack, amountBySumFromSecondStack, maxSalaryLimit);
         System.out.println(result);
+        long stop = System.currentTimeMillis();
+        System.out.println("mills: " + (stop - start));
     }
 
     private static short getMaxCountResumeBySum(Map<Short, Integer> amountBySumFromFirstStack,
@@ -63,6 +58,7 @@ public class Main {
                 if (resultSumSalary <= maxSalaryLimit && resultAmount > result) {
                     result = resultAmount;
                 }
+                sayHeap(63);
             }
         }
         return result;
@@ -70,7 +66,7 @@ public class Main {
 
     private static Map<Short, Integer> getAmountResumeBySum(List<Integer> salariesStack, Integer maxSalaryLimit) {
         int sumSalary = 0;
-        Map<Short, Integer> amountResumeBySumSalary = new HashMap<>();
+        Map<Short, Integer> amountResumeBySumSalary = new HashMap<>(10000);
         for (short amountResume = 1; sumSalary <= maxSalaryLimit && amountResume <= salariesStack.size(); amountResume++) {
             Integer salary = salariesStack.get(amountResume - 1);
             sumSalary += salary;
@@ -94,5 +90,10 @@ public class Main {
             if (!Character.isDigit(str.charAt(i))) return false;
         }
         return true;
+    }
+
+    private static void sayHeap(int numLine) {
+        long usedBytes = Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory();
+        System.out.println("line number: " + numLine +" used heap: "+ usedBytes/1048576);
     }
 }
