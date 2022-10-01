@@ -13,15 +13,17 @@ import java.util.stream.Collectors;
 public class Main {
 
     public static void main(String[] args) throws FileNotFoundException {
-        List<Integer> salariesFirstStack = new ArrayList<>();
-        List<Integer> salariesSecondStack = new ArrayList<>();
+        List<Integer> salariesFirstStack = new ArrayList<>(2);
+        List<Integer> salariesSecondStack = new ArrayList<>(2);
 
         Scanner sc = new Scanner(System.in);
 //        Scanner sc = new Scanner(new FileReader("test.txt"));
 
         String line = sc.nextLine();
         List<Integer> terms = toIntArr(line);
-        while (sc.hasNextLine()) {
+        int maxSalaryLimit = terms.get(2);
+        int sumMinSalaryFromLine = 0;
+        while (sc.hasNextLine() && sumMinSalaryFromLine <= maxSalaryLimit) {
             line = sc.nextLine();
             List<Integer> salaries = toIntArr(line);
             Integer salaryFirstStack = salaries.get(0);
@@ -32,26 +34,32 @@ public class Main {
             if (salarySecondStack != null) {
                 salariesSecondStack.add(salarySecondStack);
             }
+            if (salaryFirstStack != null && salarySecondStack != null) {
+                sumMinSalaryFromLine += Math.min(salaryFirstStack, salarySecondStack);
+            } else if (salaryFirstStack != null) {
+                sumMinSalaryFromLine += salaryFirstStack;
+            } else if (salarySecondStack != null) {
+                sumMinSalaryFromLine += salarySecondStack;
+            }
         }
 
-        Integer maxSalaryLimit = terms.get(2);
 
-        Map<Integer, Integer> amountBySumFromFirstStack = getAmountResumeBySum(salariesFirstStack, maxSalaryLimit);
-        Map<Integer, Integer> amountBySumFromSecondStack = getAmountResumeBySum(salariesSecondStack, maxSalaryLimit);
-        Integer result = getMaxCountResumeBySum(amountBySumFromFirstStack, amountBySumFromSecondStack, maxSalaryLimit);
+        Map<Short, Integer> amountBySumFromFirstStack = getAmountResumeBySum(salariesFirstStack, maxSalaryLimit);
+        Map<Short, Integer> amountBySumFromSecondStack = getAmountResumeBySum(salariesSecondStack, maxSalaryLimit);
+        short result = getMaxCountResumeBySum(amountBySumFromFirstStack, amountBySumFromSecondStack, maxSalaryLimit);
         System.out.println(result);
     }
 
-    private static Integer getMaxCountResumeBySum(Map<Integer, Integer> amountBySumFromFirstStack,
-                                                  Map<Integer, Integer> amountBySumFromSecondStack,
+    private static short getMaxCountResumeBySum(Map<Short, Integer> amountBySumFromFirstStack,
+                                                  Map<Short, Integer> amountBySumFromSecondStack,
                                                   Integer maxSalaryLimit) {
-        int result = Math.max(amountBySumFromFirstStack.size(), amountBySumFromSecondStack.size());
-        for (int amountFirstStack = 1; amountFirstStack <= amountBySumFromFirstStack.size(); amountFirstStack++) {
+        short result = (short) Math.max(amountBySumFromFirstStack.size(), amountBySumFromSecondStack.size());
+        for (short amountFirstStack = 1; amountFirstStack <= amountBySumFromFirstStack.size(); amountFirstStack++) {
             Integer sumFromFirstStack = amountBySumFromFirstStack.get(amountFirstStack);
-            for (int amountSecondStack = 1; amountSecondStack <= amountBySumFromSecondStack.size(); amountSecondStack++) {
+            for (short amountSecondStack = 1; amountSecondStack <= amountBySumFromSecondStack.size(); amountSecondStack++) {
                 Integer sumFromSecondStack = amountBySumFromSecondStack.get(amountSecondStack);
                 int resultSumSalary = sumFromFirstStack + sumFromSecondStack;
-                int resultAmount = amountFirstStack + amountSecondStack;
+                short resultAmount = (short) (amountFirstStack + amountSecondStack);
                 if (resultSumSalary <= maxSalaryLimit && resultAmount > result) {
                     result = resultAmount;
                 }
@@ -60,10 +68,10 @@ public class Main {
         return result;
     }
 
-    private static Map<Integer, Integer> getAmountResumeBySum(List<Integer> salariesStack, Integer maxSalaryLimit) {
+    private static Map<Short, Integer> getAmountResumeBySum(List<Integer> salariesStack, Integer maxSalaryLimit) {
         int sumSalary = 0;
-        Map<Integer, Integer> amountResumeBySumSalary = new HashMap<>();
-        for (int amountResume = 1; sumSalary <= maxSalaryLimit && amountResume <= salariesStack.size(); amountResume++) {
+        Map<Short, Integer> amountResumeBySumSalary = new HashMap<>();
+        for (short amountResume = 1; sumSalary <= maxSalaryLimit && amountResume <= salariesStack.size(); amountResume++) {
             Integer salary = salariesStack.get(amountResume - 1);
             sumSalary += salary;
             if (sumSalary <= maxSalaryLimit) {
