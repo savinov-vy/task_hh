@@ -4,9 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Scanner;
 import java.util.stream.Collectors;
 
@@ -14,8 +12,8 @@ public class Main {
 
     public static void main(String[] args) throws FileNotFoundException {
         long start = System.currentTimeMillis();
-        List<Integer> salariesFirstStack = new ArrayList<>(10000);
-        List<Integer> salariesSecondStack = new ArrayList<>(10000);
+        List<Resume> resumeFirstStack = new ArrayList<>(10000);
+        List<Resume> resumeSecondStack = new ArrayList<>(10000);
 
 //        Scanner sc = new Scanner(System.in);
         Scanner sc = new Scanner(new FileReader("test.txt"));
@@ -23,58 +21,60 @@ public class Main {
         String line = sc.nextLine();
         List<Integer> terms = toIntArr(line);
         int maxSalaryLimit = terms.get(2);
-        while (sc.hasNextLine()) {
+
+        fillResumeStacks(resumeFirstStack, resumeSecondStack, sc, maxSalaryLimit, terms);
+
+        short result = getMaxCountResumeBySum(resumeFirstStack, resumeSecondStack, maxSalaryLimit);
+        System.out.println(result);
+        long end = System.currentTimeMillis();
+        System.out.println("mills: " + (end - start));
+    }
+
+    private static void fillResumeStacks(List<Resume> resumeFirstStack, List<Resume> resumeSecondStack,
+                                         Scanner sc, int maxSalaryLimit,  List<Integer> terms) {
+        char salaryStackSize = (char) Math.max(terms.get(0), terms.get(1));
+        int sumSalaryInFirstStack = 0;
+        int sumSalaryInSecondStack = 0;
+        String line;
+        for (short i = 1; i <= salaryStackSize; i++) {
             line = sc.nextLine();
             List<Integer> salaries = toIntArr(line);
             Integer salaryFirstStack = salaries.get(0);
             if (salaryFirstStack != null) {
-                salariesFirstStack.add(salaryFirstStack);
+                sumSalaryInFirstStack += salaryFirstStack;
+                if (sumSalaryInFirstStack <= maxSalaryLimit) {
+                    resumeFirstStack.add(new Resume(i, salaryFirstStack, sumSalaryInFirstStack));
+                }
             }
             Integer salarySecondStack = salaries.get(1);
             if (salarySecondStack != null) {
-                salariesSecondStack.add(salarySecondStack);
+                sumSalaryInSecondStack += salarySecondStack;
+                if (sumSalaryInSecondStack <= maxSalaryLimit) {
+                    resumeSecondStack.add(new Resume(i, salarySecondStack, sumSalaryInSecondStack));
+                }
             }
         }
-
-
-        Map<Short, Integer> amountBySumFromFirstStack = getAmountResumeBySum(salariesFirstStack, maxSalaryLimit);
-        Map<Short, Integer> amountBySumFromSecondStack = getAmountResumeBySum(salariesSecondStack, maxSalaryLimit);
-        short result = getMaxCountResumeBySum(amountBySumFromFirstStack, amountBySumFromSecondStack, maxSalaryLimit);
-        System.out.println(result);
-        long stop = System.currentTimeMillis();
-        System.out.println("mills: " + (stop - start));
     }
 
-    private static short getMaxCountResumeBySum(Map<Short, Integer> amountBySumFromFirstStack,
-                                                  Map<Short, Integer> amountBySumFromSecondStack,
-                                                  Integer maxSalaryLimit) {
-        short result = (short) Math.max(amountBySumFromFirstStack.size(), amountBySumFromSecondStack.size());
-        for (short amountFirstStack = 1; amountFirstStack <= amountBySumFromFirstStack.size(); amountFirstStack++) {
-            Integer sumFromFirstStack = amountBySumFromFirstStack.get(amountFirstStack);
-            for (short amountSecondStack = 1; amountSecondStack <= amountBySumFromSecondStack.size(); amountSecondStack++) {
-                Integer sumFromSecondStack = amountBySumFromSecondStack.get(amountSecondStack);
+    private static short getMaxCountResumeBySum(List<Resume> resumesFirstStack,
+                                                List<Resume> resumesSecondStack,
+                                                int maxSalaryLimit) {
+        short result = (short) Math.max(resumesFirstStack.size(), resumesSecondStack.size());
+        for (Resume resumeFirstStack : resumesFirstStack) {
+            int sumFromFirstStack = resumeFirstStack.getSumSalaryInStack();
+            short numberOfStack1 = resumeFirstStack.getNumberOfStack();
+            for (Resume resumeSecondStack : resumesSecondStack) {
+                int sumFromSecondStack = resumeSecondStack.getSumSalaryInStack();
+                short numberOfStack2 = resumeSecondStack.getNumberOfStack();
                 int resultSumSalary = sumFromFirstStack + sumFromSecondStack;
-                short resultAmount = (short) (amountFirstStack + amountSecondStack);
-                if (resultSumSalary <= maxSalaryLimit && resultAmount > result) {
-                    result = resultAmount;
+                short sumAmountResumes = (short) (numberOfStack1 + numberOfStack2);
+                cleanHeap();
+                if (resultSumSalary <= maxSalaryLimit && sumAmountResumes > result) {
+                    result = sumAmountResumes;
                 }
-                sayHeap(63);
             }
         }
         return result;
-    }
-
-    private static Map<Short, Integer> getAmountResumeBySum(List<Integer> salariesStack, Integer maxSalaryLimit) {
-        int sumSalary = 0;
-        Map<Short, Integer> amountResumeBySumSalary = new HashMap<>(10000);
-        for (short amountResume = 1; sumSalary <= maxSalaryLimit && amountResume <= salariesStack.size(); amountResume++) {
-            Integer salary = salariesStack.get(amountResume - 1);
-            sumSalary += salary;
-            if (sumSalary <= maxSalaryLimit) {
-                amountResumeBySumSalary.put(amountResume, sumSalary);
-            }
-        }
-        return amountResumeBySumSalary;
     }
 
     private static List<Integer> toIntArr(String line) {
@@ -92,8 +92,38 @@ public class Main {
         return true;
     }
 
-    private static void sayHeap(int numLine) {
-        long usedBytes = Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory();
-        System.out.println("line number: " + numLine +" used heap: "+ usedBytes/1048576);
+    private static void cleanHeap() {
+        long usedBytes = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+        if (usedBytes > 5868712) {
+            sayHeap(usedBytes);
+            System.gc();
+        }
+    }
+    private static void sayHeap(long usedBytes) {
+        System.out.println(usedBytes/1048576);
+    }
+}
+
+class Resume {
+    short numberOfStack;
+    int salary;
+    int sumSalaryInStack;
+
+    public Resume(short numberOfStack, int value, int sumSalaryInStack) {
+        this.numberOfStack = numberOfStack;
+        this.salary = value;
+        this.sumSalaryInStack = sumSalaryInStack;
+    }
+
+    public short getNumberOfStack() {
+        return numberOfStack;
+    }
+
+    public int getSalary() {
+        return salary;
+    }
+
+    public int getSumSalaryInStack() {
+        return sumSalaryInStack;
     }
 }
