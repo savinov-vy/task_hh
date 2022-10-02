@@ -12,47 +12,34 @@ import java.util.stream.Collectors;
 public class Main {
     public static void main(String[] args) throws FileNotFoundException {
         List<Point> points = new ArrayList<>(10000);
-
+        List<Region> regions = new ArrayList<>(10000);
         fill(points);
-/*
-        points.add(Point.of(0, 0, false));
-        points.add(Point.of(0, 1, true));
-        points.add(Point.of(0, 2, true));
-        points.add(Point.of(0, 3, false));
+        setRegions(points, regions, 1);
+        Integer result = selectBestAreaAndGetCountPoint(regions);
+        if (result > 0) {
+            System.out.println(result);
+        } else {
+            System.out.println("result");
+        }
+    }
 
-        points.add(Point.of(1, 0, true));
-        points.add(Point.of(1, 1, true));
-        points.add(Point.of(1, 2, true));
-        points.add(Point.of(1, 3, false));
+    private static void setRegions(List<Point> allPoints, List<Region> regions, int numberRegion) {
+        Point point = foundLooseFertilePoint(allPoints);
+        if (point != null) {
+            setRegionAllPoints(Arrays.asList(point), allPoints, numberRegion);
+            int sumFertilePointInRegion = getSumFertilePointInRegion(allPoints, numberRegion);
+            int sumAllPointInRegion = getSumAllPointInRegion(allPoints, numberRegion);
+            regions.add(new Region(sumFertilePointInRegion,
+                    sumAllPointInRegion,
+                    numberRegion));
+            setRegions(allPoints, regions, (numberRegion + 1));
+        }
+    }
 
-        points.add(Point.of(2, 0, true));
-        points.add(Point.of(2, 1, true));
-        points.add(Point.of(2, 2, false));
-        points.add(Point.of(2, 3, false));
-
-        points.add(Point.of(3, 0, false));
-        points.add(Point.of(3, 1, false));
-        points.add(Point.of(3, 2, false));
-        points.add(Point.of(3, 3, true));
-
-        points.add(Point.of(4, 0, false));
-        points.add(Point.of(4, 1, true));
-        points.add(Point.of(4, 2, true));
-        points.add(Point.of(4, 3, false));
-*/
-
-        Point firstPointFirstRegion = setFirstPoint(points, 1);
-        setRegionAllPoints(Arrays.asList(firstPointFirstRegion), points, 1);
-        Point point = setFirstPoint(points, 2);
-        setRegionAllPoints(Arrays.asList(point), points, 2);
-        Integer sumFertileInFirstRegion = getSumFertilePointInRegion(points, 1);
-        Integer sumFertileInSecondRegion = getSumFertilePointInRegion(points, 2);
-        Integer sumAllPointsInFirstRegion = getSumAllPointInRegion(points, 1);
-        Integer sumAllPointsInSecondRegion = getSumAllPointInRegion(points, 2);
-
-        Integer result = selectBestAreaAndGetCountPoint(sumFertileInFirstRegion, sumAllPointsInFirstRegion,
-                sumFertileInSecondRegion, sumAllPointsInSecondRegion);
-        System.out.println(result);
+    private static Point foundLooseFertilePoint(List<Point> allPoints) {
+        return allPoints.stream()
+                .filter(point -> point.isFertile() && point.getRegionNumber() == null)
+                .findFirst().orElse(null);
     }
 
     private static void fill(List<Point> points) throws FileNotFoundException {
@@ -68,36 +55,44 @@ public class Main {
         }
     }
 
-    private static Integer selectBestAreaAndGetCountPoint(Integer sumFertileInFirstRegion,
-                                                          Integer sumAllPointsInFirstRegion,
-                                                          Integer sumFertileInSecondRegion,
-                                                          Integer sumAllPointsInSecondRegion) {
-        double effectivenessFirstRegion = (double) sumFertileInFirstRegion / sumAllPointsInFirstRegion;
-        double effectivenessSecondRegion = (double) sumFertileInSecondRegion / sumAllPointsInSecondRegion;
-        if (effectivenessFirstRegion > effectivenessSecondRegion) {
-            return sumAllPointsInFirstRegion;
-        } else if (effectivenessFirstRegion == effectivenessSecondRegion) {
-            return sumAllPointsInFirstRegion >= sumAllPointsInSecondRegion ? sumAllPointsInFirstRegion :
-                    sumAllPointsInSecondRegion;
-        } else {
-            return sumAllPointsInSecondRegion;
+    private static Integer selectBestAreaAndGetCountPoint(List<Region> regions) {
+        int allPointBestRegion = 0;
+        double effectivenessBestRegion = 0.0;
+
+        if (regions.isEmpty()) {
+            return null;
         }
+
+        for (Region region : regions) {
+            int allPoint = region.getAllPoint();
+            int amountFertile = region.getAmountFertile();
+            if (allPoint > 1) {
+                double effectivenessRegion = (double) amountFertile / allPoint;
+                if (effectivenessRegion > effectivenessBestRegion) {
+                    allPointBestRegion = allPoint;
+                    effectivenessBestRegion = effectivenessRegion;
+                } else if (effectivenessBestRegion == effectivenessRegion && allPoint > allPointBestRegion) {
+                    allPointBestRegion = allPoint;
+                }
+            }
+        }
+        return allPointBestRegion;
     }
 
-    private static Integer getSumFertilePointInRegion(List<Point> allPoints, Integer regionNumber) {
+    private static int getSumFertilePointInRegion(List<Point> allPoints, Integer regionNumber) {
         long count = allPoints.stream()
                 .filter(point -> point.isFertile() && point.getRegionNumber() == regionNumber)
                 .count();
         return (int) count;
     }
 
-    private static Integer getSumAllPointInRegion(List<Point> allPoints, Integer regionNumber) {
-        Integer maxHorizontalCoordinate = getMaxHorizontalCoordinate(allPoints, regionNumber);
-        Integer minHorizontalCoordinate = getMinHorizontalCoordinate(allPoints, regionNumber);
-        Integer amountPointHorizontalBorder = maxHorizontalCoordinate - minHorizontalCoordinate + 1;
-        Integer maxVerticalCoordinate = getMaxVerticalCoordinate(allPoints, regionNumber);
-        Integer minVerticalCoordinate = getMinVerticalCoordinate(allPoints, regionNumber);
-        Integer amountPointVerticalBorder = maxVerticalCoordinate - minVerticalCoordinate + 1;
+    private static int getSumAllPointInRegion(List<Point> allPoints, int regionNumber) {
+        int maxHorizontalCoordinate = getMaxHorizontalCoordinate(allPoints, regionNumber);
+        int minHorizontalCoordinate = getMinHorizontalCoordinate(allPoints, regionNumber);
+        int amountPointHorizontalBorder = maxHorizontalCoordinate - minHorizontalCoordinate + 1;
+        int maxVerticalCoordinate = getMaxVerticalCoordinate(allPoints, regionNumber);
+        int minVerticalCoordinate = getMinVerticalCoordinate(allPoints, regionNumber);
+        int amountPointVerticalBorder = maxVerticalCoordinate - minVerticalCoordinate + 1;
         return amountPointHorizontalBorder * amountPointVerticalBorder;
     }
 
@@ -125,19 +120,7 @@ public class Main {
                 .mapToInt(Point::getY).min().getAsInt();
     }
 
-    private static Point setFirstPoint(List<Point> list, Integer regionNumber) {
-        Point first = list.stream()
-                .filter(point -> point.isFertile() && point.getRegionNumber() == null)
-                .findFirst().orElse(null);
-        if (first == null) {
-            return null;
-        } else {
-            first.setRegionNumber(regionNumber);
-        }
-        return first;
-    }
-
-    private static void setRegionAllPoints(List<Point> hasRegionPoints, List<Point> allPoints, Integer regionNumber) {
+    private static void setRegionAllPoints(List<Point> hasRegionPoints, List<Point> allPoints, int regionNumber) {
         boolean isExistLoosePoints = true;
         while (isExistLoosePoints) {
             List<Point> loosePoints = hasRegionPoints.stream()
@@ -146,6 +129,7 @@ public class Main {
                     .collect(Collectors.toList());
             if (loosePoints.isEmpty()) {
                 isExistLoosePoints = false;
+                hasRegionPoints.forEach(point -> point.setRegionNumber(regionNumber));
             } else {
                 loosePoints.forEach(point -> point.setRegionNumber(regionNumber));
                 setRegionAllPoints(loosePoints, allPoints, regionNumber);
@@ -163,7 +147,7 @@ public class Main {
     }
 
     private static boolean isNeighbor(Point test, Point control) {
-        return isHorizontalNeighbor(test, control) ||
+         return isHorizontalNeighbor(test, control) ||
                 isVerticalNeighbor(test, control) ||
                 isDescendingDiagonalNeighbor(test, control) ||
                 isRisingDiagonalNeighbor(test, control);
@@ -194,6 +178,42 @@ public class Main {
         return Arrays.stream(dataArr)
                 .map(Integer::parseInt)
                 .collect(Collectors.toList());
+    }
+}
+
+class Region {
+    int amountFertile;
+    int allPoint;
+    int regionNumber;
+
+    public Region(int amountFertile, int allPoint, int regionNumber) {
+        this.amountFertile = amountFertile;
+        this.allPoint = allPoint;
+        this.regionNumber = regionNumber;
+    }
+
+    public int getAmountFertile() {
+        return amountFertile;
+    }
+
+    public void setAmountFertile(int amountFertile) {
+        this.amountFertile = amountFertile;
+    }
+
+    public int getAllPoint() {
+        return allPoint;
+    }
+
+    public void setAllPoint(int allPoint) {
+        this.allPoint = allPoint;
+    }
+
+    public int getRegionNumber() {
+        return regionNumber;
+    }
+
+    public void setRegionNumber(int regionNumber) {
+        this.regionNumber = regionNumber;
     }
 }
 
