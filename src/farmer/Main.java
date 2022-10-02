@@ -16,11 +16,7 @@ public class Main {
         fill(points);
         setRegions(points, regions, 1);
         Integer result = selectBestAreaAndGetCountPoint(regions);
-        if (result > 0) {
-            System.out.println(result);
-        } else {
-            System.out.println("result");
-        }
+        System.out.println(result);
     }
 
     private static void setRegions(List<Point> allPoints, List<Region> regions, int numberRegion) {
@@ -60,7 +56,7 @@ public class Main {
         double effectivenessBestRegion = 0.0;
 
         if (regions.isEmpty()) {
-            return null;
+            return 0;
         }
 
         for (Region region : regions) {
@@ -147,7 +143,7 @@ public class Main {
     }
 
     private static boolean isNeighbor(Point test, Point control) {
-         return isHorizontalNeighbor(test, control) ||
+        return isHorizontalNeighbor(test, control) ||
                 isVerticalNeighbor(test, control) ||
                 isDescendingDiagonalNeighbor(test, control) ||
                 isRisingDiagonalNeighbor(test, control);
