@@ -11,12 +11,11 @@ import java.util.stream.Collectors;
 public class Main {
 
     public static void main(String[] args) throws FileNotFoundException {
-        long start = System.currentTimeMillis();
         List<Resume> resumeFirstStack = new ArrayList<>(10000);
         List<Resume> resumeSecondStack = new ArrayList<>(10000);
 
-//        Scanner sc = new Scanner(System.in);
-        Scanner sc = new Scanner(new FileReader("test.txt"));
+        Scanner sc = new Scanner(System.in);
+//        Scanner sc = new Scanner(new FileReader("test1.txt"));
 
         String line = sc.nextLine();
         List<Integer> terms = toIntArr(line);
@@ -26,8 +25,6 @@ public class Main {
 
         short result = getMaxCountResumeBySum(resumeFirstStack, resumeSecondStack, maxSalaryLimit);
         System.out.println(result);
-        long end = System.currentTimeMillis();
-        System.out.println("mills: " + (end - start));
     }
 
     private static void fillResumeStacks(List<Resume> resumeFirstStack, List<Resume> resumeSecondStack,
@@ -68,7 +65,6 @@ public class Main {
                 short numberOfStack2 = resumeSecondStack.getNumberOfStack();
                 int resultSumSalary = sumFromFirstStack + sumFromSecondStack;
                 short sumAmountResumes = (short) (numberOfStack1 + numberOfStack2);
-                cleanHeap();
                 if (resultSumSalary <= maxSalaryLimit && sumAmountResumes > result) {
                     result = sumAmountResumes;
                 }
@@ -90,17 +86,6 @@ public class Main {
             if (!Character.isDigit(str.charAt(i))) return false;
         }
         return true;
-    }
-
-    private static void cleanHeap() {
-        long usedBytes = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-        if (usedBytes > 5868712) {
-            sayHeap(usedBytes);
-            System.gc();
-        }
-    }
-    private static void sayHeap(long usedBytes) {
-        System.out.println(usedBytes/1048576);
     }
 }
 

@@ -1,15 +1,20 @@
 package farmer;
 
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Scanner;
 import java.util.stream.Collectors;
 
 public class Main {
-    public static void main(String[] args) {
-        List<Point> points = new ArrayList<>();
+    public static void main(String[] args) throws FileNotFoundException {
+        List<Point> points = new ArrayList<>(10000);
 
+        fill(points);
+/*
         points.add(Point.of(0, 0, false));
         points.add(Point.of(0, 1, true));
         points.add(Point.of(0, 2, true));
@@ -34,7 +39,7 @@ public class Main {
         points.add(Point.of(4, 1, true));
         points.add(Point.of(4, 2, true));
         points.add(Point.of(4, 3, false));
-
+*/
 
         Point firstPointFirstRegion = setFirstPoint(points, 1);
         setRegionAllPoints(Arrays.asList(firstPointFirstRegion), points, 1);
@@ -48,6 +53,19 @@ public class Main {
         Integer result = selectBestAreaAndGetCountPoint(sumFertileInFirstRegion, sumAllPointsInFirstRegion,
                 sumFertileInSecondRegion, sumAllPointsInSecondRegion);
         System.out.println(result);
+    }
+
+    private static void fill(List<Point> points) throws FileNotFoundException {
+//        Scanner sc = new Scanner(System.in);
+        Scanner sc = new Scanner(new FileReader("test2.txt"));
+        String line = sc.nextLine();
+        List<Integer> terms = toIntList(line);
+        for (int y = 0; y < terms.get(1); y++) {
+            line = sc.nextLine();
+            List<Integer> data = toIntList(line);
+            for (int x = 0; x < terms.get(0); x++)
+                points.add(Point.of(x, y, data.get(x) == 1));
+        }
     }
 
     private static Integer selectBestAreaAndGetCountPoint(Integer sumFertileInFirstRegion,
@@ -65,7 +83,7 @@ public class Main {
             return sumAllPointsInSecondRegion;
         }
     }
-    
+
     private static Integer getSumFertilePointInRegion(List<Point> allPoints, Integer regionNumber) {
         long count = allPoints.stream()
                 .filter(point -> point.isFertile() && point.getRegionNumber() == regionNumber)
@@ -84,9 +102,9 @@ public class Main {
     }
 
     private static Integer getMaxHorizontalCoordinate(List<Point> allPoints, Integer regionNumber) {
-    return allPoints.stream()
-            .filter(point -> point.getRegionNumber() == regionNumber)
-            .mapToInt(Point::getX).max().getAsInt();
+        return allPoints.stream()
+                .filter(point -> point.getRegionNumber() == regionNumber)
+                .mapToInt(Point::getX).max().getAsInt();
     }
 
     private static Integer getMinHorizontalCoordinate(List<Point> allPoints, Integer regionNumber) {
@@ -169,6 +187,13 @@ public class Main {
     private static boolean isRisingDiagonalNeighbor(Point test, Point control) {
         return (control.getX() == test.getX() + 1 && control.getY() == test.getY() - 1) ||
                 (control.getX() == test.getX() - 1 && control.getY() == test.getY() + 1);
+    }
+
+    private static List<Integer> toIntList(String line) {
+        String[] dataArr = line.split(" ");
+        return Arrays.stream(dataArr)
+                .map(Integer::parseInt)
+                .collect(Collectors.toList());
     }
 }
 
