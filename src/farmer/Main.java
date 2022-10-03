@@ -2,6 +2,8 @@ package farmer;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,14 +35,14 @@ public class Main {
     }
 
     private static Point foundLooseFertilePoint(List<Point> allPoints) {
-        return allPoints.stream()
+        return allPoints.parallelStream()
                 .filter(point -> point.isFertile() && point.getRegionNumber() == null)
                 .findFirst().orElse(null);
     }
 
     private static void fill(List<Point> points) throws FileNotFoundException {
-//        Scanner sc = new Scanner(System.in);
-        Scanner sc = new Scanner(new FileReader("test2.txt"));
+        Scanner sc = new Scanner(System.in);
+//        Scanner sc = new Scanner(new FileReader("test2.txt"));
         String line = sc.nextLine();
         List<Integer> terms = toIntList(line);
         for (int y = 0; y < terms.get(1); y++) {
@@ -53,7 +55,7 @@ public class Main {
 
     private static Integer selectBestAreaAndGetCountPoint(List<Region> regions) {
         int allPointBestRegion = 0;
-        double effectivenessBestRegion = 0.0;
+        BigDecimal effectivenessBestRegion = new BigDecimal(0);
 
         if (regions.isEmpty()) {
             return 0;
@@ -61,13 +63,12 @@ public class Main {
 
         for (Region region : regions) {
             int allPoint = region.getAllPoint();
-            int amountFertile = region.getAmountFertile();
             if (allPoint > 1) {
-                double effectivenessRegion = (double) amountFertile / allPoint;
-                if (effectivenessRegion > effectivenessBestRegion) {
+                BigDecimal effectiveness = region.getEffectiveness();
+                if (effectiveness.compareTo(effectivenessBestRegion) > 0) {
                     allPointBestRegion = allPoint;
-                    effectivenessBestRegion = effectivenessRegion;
-                } else if (effectivenessBestRegion == effectivenessRegion && allPoint > allPointBestRegion) {
+                    effectivenessBestRegion = effectiveness;
+                } else if (effectivenessBestRegion.compareTo(effectiveness) == 0 && allPoint > allPointBestRegion) {
                     allPointBestRegion = allPoint;
                 }
             }
@@ -76,7 +77,7 @@ public class Main {
     }
 
     private static int getSumFertilePointInRegion(List<Point> allPoints, Integer regionNumber) {
-        long count = allPoints.stream()
+        long count = allPoints.parallelStream()
                 .filter(point -> point.isFertile() && point.getRegionNumber() == regionNumber)
                 .count();
         return (int) count;
@@ -93,25 +94,25 @@ public class Main {
     }
 
     private static Integer getMaxHorizontalCoordinate(List<Point> allPoints, Integer regionNumber) {
-        return allPoints.stream()
+        return allPoints.parallelStream()
                 .filter(point -> point.getRegionNumber() == regionNumber)
                 .mapToInt(Point::getX).max().getAsInt();
     }
 
     private static Integer getMinHorizontalCoordinate(List<Point> allPoints, Integer regionNumber) {
-        return allPoints.stream()
+        return allPoints.parallelStream()
                 .filter(point -> point.getRegionNumber() == regionNumber)
                 .mapToInt(Point::getX).min().getAsInt();
     }
 
     private static Integer getMaxVerticalCoordinate(List<Point> allPoints, Integer regionNumber) {
-        return allPoints.stream()
+        return allPoints.parallelStream()
                 .filter(point -> point.getRegionNumber() == regionNumber)
                 .mapToInt(Point::getY).max().getAsInt();
     }
 
     private static Integer getMinVerticalCoordinate(List<Point> allPoints, Integer regionNumber) {
-        return allPoints.stream()
+        return allPoints.parallelStream()
                 .filter(point -> point.getRegionNumber() == regionNumber)
                 .mapToInt(Point::getY).min().getAsInt();
     }
@@ -119,7 +120,8 @@ public class Main {
     private static void setRegionAllPoints(List<Point> hasRegionPoints, List<Point> allPoints, int regionNumber) {
         boolean isExistLoosePoints = true;
         while (isExistLoosePoints) {
-            List<Point> loosePoints = hasRegionPoints.stream()
+            List<Point> loosePoints = hasRegionPoints.parallelStream()
+                    .distinct()
                     .map(hasRegionPoint -> findLooseNeighbors(allPoints, hasRegionPoint))
                     .flatMap(Collection::stream)
                     .collect(Collectors.toList());
@@ -134,7 +136,7 @@ public class Main {
     }
 
     private static List<Point> findLooseNeighbors(List<Point> allPoints, Point hasRegionPoint) {
-        return allPoints.stream()
+        return allPoints.parallelStream()
                 .filter(searchPoint
                         -> searchPoint.getRegionNumber() == null &&
                         searchPoint.isFertile() &&
@@ -181,36 +183,24 @@ class Region {
     int amountFertile;
     int allPoint;
     int regionNumber;
+    BigDecimal effectiveness;
 
     public Region(int amountFertile, int allPoint, int regionNumber) {
         this.amountFertile = amountFertile;
         this.allPoint = allPoint;
         this.regionNumber = regionNumber;
-    }
-
-    public int getAmountFertile() {
-        return amountFertile;
-    }
-
-    public void setAmountFertile(int amountFertile) {
-        this.amountFertile = amountFertile;
+        this.effectiveness =
+                new BigDecimal(amountFertile).divide(new BigDecimal(allPoint),6, RoundingMode.DOWN);
     }
 
     public int getAllPoint() {
         return allPoint;
     }
 
-    public void setAllPoint(int allPoint) {
-        this.allPoint = allPoint;
+    public BigDecimal getEffectiveness() {
+        return effectiveness;
     }
 
-    public int getRegionNumber() {
-        return regionNumber;
-    }
-
-    public void setRegionNumber(int regionNumber) {
-        this.regionNumber = regionNumber;
-    }
 }
 
 class Point {
