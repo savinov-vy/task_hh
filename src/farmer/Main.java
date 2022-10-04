@@ -17,24 +17,27 @@ import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] args) throws FileNotFoundException {
-//        long l = System.currentTimeMillis();
+        long l = System.currentTimeMillis();
         List<Point> points = new ArrayList<>(10000);
+
         List<Region> regions = new ArrayList<>(10000);
         fill(points);
-        setRegions(points, regions, 1);
+        Map<String, Point> pointByCoordinate = points.parallelStream()
+                .collect(Collectors.toMap(point -> point.getX() + " " + point.getY(), Function.identity()));
+
+        setRegions(points, pointByCoordinate, regions, 1);
         Integer result = selectBestAreaAndGetCountPoint(regions);
         System.out.println(result);
-//        System.out.println(System.currentTimeMillis() - l);
+        System.out.println(System.currentTimeMillis() - l);
     }
 
-    private static void setRegions(List<Point> allPoints, List<Region> regions, int numberRegion) {
+    private static void setRegions(List<Point> allPoints, Map<String, Point> pointByCoordinate, List<Region> regions, Integer numberRegion) {
         Point point = foundLooseFertilePoint(allPoints);
         if (point != null) {
-            setRegionAllPoints(new HashSet<>(Arrays.asList(point)), allPoints, numberRegion);
-            Region region = collectRegion(allPoints, numberRegion);
-
+            setRegionBasePoints(new HashSet<>(Arrays.asList(point)), allPoints, numberRegion);
+            Region region = collectRegion(allPoints, numberRegion, pointByCoordinate);
             regions.add(region);
-            setRegions(allPoints, regions, (numberRegion + 1));
+            setRegions(allPoints, pointByCoordinate, regions, (numberRegion + 1));
         }
     }
 
@@ -45,15 +48,15 @@ public class Main {
     }
 
     private static void fill(List<Point> points) throws FileNotFoundException {
-        Scanner sc = new Scanner(System.in);
-//        Scanner sc = new Scanner(new FileReader("test2.txt"));
+//        Scanner sc = new Scanner(System.in);
+        Scanner sc = new Scanner(new FileReader("test2.txt"));
         String line = sc.nextLine();
         List<Integer> terms = toIntList(line);
         for (int y = 0; y < terms.get(1); y++) {
             line = sc.nextLine();
             List<Integer> data = toIntList(line);
             for (int x = 0; x < terms.get(0); x++)
-                points.add(Point.of(x, y, data.get(x) == 1));
+                points.add(new Point(x, y, data.get(x) == 1));
         }
     }
 
@@ -80,10 +83,7 @@ public class Main {
         return allPointBestRegion;
     }
 
-    private static Region collectRegion(List<Point> allPoints, int regionNumber) {
-
-        Map<String, Point> pointByCoordinate = allPoints.parallelStream()
-                .collect(Collectors.toMap(point -> point.getX() + " " + point.getY(), Function.identity()));
+    private static Region collectRegion(List<Point> allPoints, int regionNumber, Map<String, Point> pointByCoordinate) {
 
         int maxXCoordinate = getMaxHorizontalCoordinate(allPoints, regionNumber);
         int minXCoordinate = getMinHorizontalCoordinate(allPoints, regionNumber);
@@ -97,7 +97,7 @@ public class Main {
 
         int allPointRegion = amountPointHorizontalBorder * amountPointVerticalBorder;
 
-        return new Region(countFertileInRegion, allPointRegion, regionNumber);
+        return new Region(countFertileInRegion, allPointRegion);
     }
 
     private static int countFertilePointInRegion(int maxXCoordinate,
@@ -141,19 +141,19 @@ public class Main {
                 .mapToInt(Point::getY).min().getAsInt();
     }
 
-    private static void setRegionAllPoints(Set<Point> hasRegionPoints, List<Point> allPoints, int regionNumber) {
+    private static void setRegionBasePoints(Set<Point> hasRegionPoints, List<Point> allPoints, int regionNumber) {
         boolean isExistLoosePoints = true;
         while (isExistLoosePoints) {
             Set<Point> loosePoints = hasRegionPoints.parallelStream()
                     .map(hasRegionPoint -> findLooseNeighbors(allPoints, hasRegionPoint))
-                    .flatMap(Collection::stream)
+                    .flatMap(Collection::parallelStream)
                     .collect(Collectors.toSet());
             if (loosePoints.isEmpty()) {
                 isExistLoosePoints = false;
                 hasRegionPoints.forEach(point -> point.setRegionNumber(regionNumber));
             } else {
                 loosePoints.forEach(point -> point.setRegionNumber(regionNumber));
-                setRegionAllPoints(loosePoints, allPoints, regionNumber);
+                setRegionBasePoints(loosePoints, allPoints, regionNumber);
             }
         }
     }
@@ -203,17 +203,13 @@ public class Main {
 }
 
 class Region {
-    int amountFertile;
-    int allPoint;
-    int regionNumber;
-    BigDecimal effectiveness;
+    private final int allPoint;
+    private final BigDecimal effectiveness;
 
-    public Region(int amountFertile, int allPoint, int regionNumber) {
-        this.amountFertile = amountFertile;
+    public Region(int amountFertile, int allPoint) {
         this.allPoint = allPoint;
-        this.regionNumber = regionNumber;
         this.effectiveness =
-                new BigDecimal(amountFertile).divide(new BigDecimal(allPoint), 6, RoundingMode.DOWN);
+                new BigDecimal(amountFertile).divide(new BigDecimal(allPoint), 4, RoundingMode.DOWN);
     }
 
     public int getAllPoint() {
@@ -227,20 +223,16 @@ class Region {
 }
 
 class Point {
-    private Integer x;
-    private Integer y;
-    private boolean isFertile;
+    private final Integer x;
+    private final Integer y;
+    private final boolean isFertile;
     private Integer regionNumber;
 
 
-    private Point(Integer x, Integer y, boolean isFertile) {
+    public Point(Integer x, Integer y, boolean isFertile) {
         this.x = x;
         this.y = y;
         this.isFertile = isFertile;
-    }
-
-    public static Point of(int x, int y, boolean isFertile) {
-        return new Point(x, y, isFertile);
     }
 
     public Integer getX() {
