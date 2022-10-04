@@ -7,29 +7,33 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] args) throws FileNotFoundException {
+//        long l = System.currentTimeMillis();
         List<Point> points = new ArrayList<>(10000);
         List<Region> regions = new ArrayList<>(10000);
         fill(points);
         setRegions(points, regions, 1);
         Integer result = selectBestAreaAndGetCountPoint(regions);
         System.out.println(result);
+//        System.out.println(System.currentTimeMillis() - l);
     }
 
     private static void setRegions(List<Point> allPoints, List<Region> regions, int numberRegion) {
         Point point = foundLooseFertilePoint(allPoints);
         if (point != null) {
-            setRegionAllPoints(Arrays.asList(point), allPoints, numberRegion);
-            int sumFertilePointInRegion = getSumFertilePointInRegion(allPoints, numberRegion);
-            int sumAllPointInRegion = getSumAllPointInRegion(allPoints, numberRegion);
-            regions.add(new Region(sumFertilePointInRegion,
-                    sumAllPointInRegion,
-                    numberRegion));
+            setRegionAllPoints(new HashSet<>(Arrays.asList(point)), allPoints, numberRegion);
+            Region region = collectRegion(allPoints, numberRegion);
+
+            regions.add(region);
             setRegions(allPoints, regions, (numberRegion + 1));
         }
     }
@@ -76,21 +80,41 @@ public class Main {
         return allPointBestRegion;
     }
 
-    private static int getSumFertilePointInRegion(List<Point> allPoints, Integer regionNumber) {
-        long count = allPoints.parallelStream()
-                .filter(point -> point.isFertile() && point.getRegionNumber() == regionNumber)
-                .count();
-        return (int) count;
+    private static Region collectRegion(List<Point> allPoints, int regionNumber) {
+
+        Map<String, Point> pointByCoordinate = allPoints.parallelStream()
+                .collect(Collectors.toMap(point -> point.getX() + " " + point.getY(), Function.identity()));
+
+        int maxXCoordinate = getMaxHorizontalCoordinate(allPoints, regionNumber);
+        int minXCoordinate = getMinHorizontalCoordinate(allPoints, regionNumber);
+        int amountPointHorizontalBorder = maxXCoordinate - minXCoordinate + 1;
+        int maxYCoordinate = getMaxVerticalCoordinate(allPoints, regionNumber);
+        int minYCoordinate = getMinVerticalCoordinate(allPoints, regionNumber);
+        int amountPointVerticalBorder = maxYCoordinate - minYCoordinate + 1;
+
+        int countFertileInRegion = countFertilePointInRegion(maxXCoordinate, minXCoordinate,
+                maxYCoordinate, minYCoordinate, pointByCoordinate);
+
+        int allPointRegion = amountPointHorizontalBorder * amountPointVerticalBorder;
+
+        return new Region(countFertileInRegion, allPointRegion, regionNumber);
     }
 
-    private static int getSumAllPointInRegion(List<Point> allPoints, int regionNumber) {
-        int maxHorizontalCoordinate = getMaxHorizontalCoordinate(allPoints, regionNumber);
-        int minHorizontalCoordinate = getMinHorizontalCoordinate(allPoints, regionNumber);
-        int amountPointHorizontalBorder = maxHorizontalCoordinate - minHorizontalCoordinate + 1;
-        int maxVerticalCoordinate = getMaxVerticalCoordinate(allPoints, regionNumber);
-        int minVerticalCoordinate = getMinVerticalCoordinate(allPoints, regionNumber);
-        int amountPointVerticalBorder = maxVerticalCoordinate - minVerticalCoordinate + 1;
-        return amountPointHorizontalBorder * amountPointVerticalBorder;
+    private static int countFertilePointInRegion(int maxXCoordinate,
+                                               int minXCoordinate,
+                                               int maxYCoordinate,
+                                               int minYCoordinate,
+                                               Map<String, Point> pointByCoordinate) {
+        int countFertile = 0;
+        for (int x = minXCoordinate; x <= maxXCoordinate; x++) {
+            for (int y = minYCoordinate; y <= maxYCoordinate; y++) {
+                Point point = pointByCoordinate.get(x + " " + y);
+                if (point.isFertile()) {
+                    countFertile ++;
+                }
+            }
+        }
+        return countFertile;
     }
 
     private static Integer getMaxHorizontalCoordinate(List<Point> allPoints, Integer regionNumber) {
@@ -117,14 +141,13 @@ public class Main {
                 .mapToInt(Point::getY).min().getAsInt();
     }
 
-    private static void setRegionAllPoints(List<Point> hasRegionPoints, List<Point> allPoints, int regionNumber) {
+    private static void setRegionAllPoints(Set<Point> hasRegionPoints, List<Point> allPoints, int regionNumber) {
         boolean isExistLoosePoints = true;
         while (isExistLoosePoints) {
-            List<Point> loosePoints = hasRegionPoints.parallelStream()
-                    .distinct()
+            Set<Point> loosePoints = hasRegionPoints.parallelStream()
                     .map(hasRegionPoint -> findLooseNeighbors(allPoints, hasRegionPoint))
                     .flatMap(Collection::stream)
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toSet());
             if (loosePoints.isEmpty()) {
                 isExistLoosePoints = false;
                 hasRegionPoints.forEach(point -> point.setRegionNumber(regionNumber));
@@ -190,7 +213,7 @@ class Region {
         this.allPoint = allPoint;
         this.regionNumber = regionNumber;
         this.effectiveness =
-                new BigDecimal(amountFertile).divide(new BigDecimal(allPoint),6, RoundingMode.DOWN);
+                new BigDecimal(amountFertile).divide(new BigDecimal(allPoint), 6, RoundingMode.DOWN);
     }
 
     public int getAllPoint() {
@@ -224,24 +247,12 @@ class Point {
         return x;
     }
 
-    public void setX(Integer x) {
-        this.x = x;
-    }
-
     public Integer getY() {
         return y;
     }
 
-    public void setY(Integer y) {
-        this.y = y;
-    }
-
     public boolean isFertile() {
         return isFertile;
-    }
-
-    public void setFertile(boolean fertile) {
-        isFertile = fertile;
     }
 
     public Integer getRegionNumber() {
