@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.function.Function;
@@ -22,6 +23,8 @@ public class Main {
 
         List<Region> regions = new ArrayList<>(10000);
         fill(points);
+
+        // вначале использовать только плодородные точки, рассмотреть может не плодородные вообще не нужны?
         Map<String, Point> pointByCoordinate = points.parallelStream()
                 .collect(Collectors.toMap(point -> point.getX() + " " + point.getY(), Function.identity()));
 
@@ -34,7 +37,7 @@ public class Main {
     private static void setRegions(List<Point> allPoints, Map<String, Point> pointByCoordinate, List<Region> regions, Integer numberRegion) {
         Point point = foundLooseFertilePoint(allPoints);
         if (point != null) {
-            setRegionBasePoints(new HashSet<>(Arrays.asList(point)), allPoints, numberRegion);
+            setRegionBasePoints(new HashSet<>(Arrays.asList(point)), pointByCoordinate, numberRegion);
             Region region = collectRegion(allPoints, numberRegion, pointByCoordinate);
             regions.add(region);
             setRegions(allPoints, pointByCoordinate, regions, (numberRegion + 1));
@@ -43,7 +46,7 @@ public class Main {
 
     private static Point foundLooseFertilePoint(List<Point> allPoints) {
         return allPoints.parallelStream()
-                .filter(point -> point.isFertile() && point.getRegionNumber() == null)
+                .filter(point -> point.getRegionNumber() == null)
                 .findFirst().orElse(null);
     }
 
@@ -56,7 +59,9 @@ public class Main {
             line = sc.nextLine();
             List<Integer> data = toIntList(line);
             for (int x = 0; x < terms.get(0); x++)
-                points.add(new Point(x, y, data.get(x) == 1));
+                if (data.get(x) == 1) {
+                    points.add(new Point(x, y));
+                }
         }
     }
 
@@ -101,16 +106,16 @@ public class Main {
     }
 
     private static int countFertilePointInRegion(int maxXCoordinate,
-                                               int minXCoordinate,
-                                               int maxYCoordinate,
-                                               int minYCoordinate,
-                                               Map<String, Point> pointByCoordinate) {
+                                                 int minXCoordinate,
+                                                 int maxYCoordinate,
+                                                 int minYCoordinate,
+                                                 Map<String, Point> pointByCoordinate) {
         int countFertile = 0;
         for (int x = minXCoordinate; x <= maxXCoordinate; x++) {
             for (int y = minYCoordinate; y <= maxYCoordinate; y++) {
                 Point point = pointByCoordinate.get(x + " " + y);
-                if (point.isFertile()) {
-                    countFertile ++;
+                if (point != null) {
+                    countFertile++;
                 }
             }
         }
@@ -141,11 +146,11 @@ public class Main {
                 .mapToInt(Point::getY).min().getAsInt();
     }
 
-    private static void setRegionBasePoints(Set<Point> hasRegionPoints, List<Point> allPoints, int regionNumber) {
+    private static void setRegionBasePoints(Set<Point> hasRegionPoints, Map<String, Point> pointByCoordinate, int regionNumber) {
         boolean isExistLoosePoints = true;
         while (isExistLoosePoints) {
             Set<Point> loosePoints = hasRegionPoints.parallelStream()
-                    .map(hasRegionPoint -> findLooseNeighbors(allPoints, hasRegionPoint))
+                    .map(hasRegionPoint -> findLooseNeighbors(pointByCoordinate, hasRegionPoint))
                     .flatMap(Collection::parallelStream)
                     .collect(Collectors.toSet());
             if (loosePoints.isEmpty()) {
@@ -153,45 +158,36 @@ public class Main {
                 hasRegionPoints.forEach(point -> point.setRegionNumber(regionNumber));
             } else {
                 loosePoints.forEach(point -> point.setRegionNumber(regionNumber));
-                setRegionBasePoints(loosePoints, allPoints, regionNumber);
+                setRegionBasePoints(loosePoints, pointByCoordinate, regionNumber);
             }
         }
     }
 
-    private static List<Point> findLooseNeighbors(List<Point> allPoints, Point hasRegionPoint) {
-        return allPoints.parallelStream()
-                .filter(searchPoint
-                        -> searchPoint.getRegionNumber() == null &&
-                        searchPoint.isFertile() &&
-                        isNeighbor(searchPoint, hasRegionPoint))
+    private static List<Point> findLooseNeighbors(Map<String, Point> pointByCoordinate, Point hasRegionPoint) {
+        List<String> strings = neighborCoordinates(hasRegionPoint);
+        return strings.stream()
+                .map(pointByCoordinate::get)
+                .filter(Objects::nonNull)
+                .filter(point -> point.getRegionNumber() == null)
                 .collect(Collectors.toList());
     }
 
-    private static boolean isNeighbor(Point test, Point control) {
-        return isHorizontalNeighbor(test, control) ||
-                isVerticalNeighbor(test, control) ||
-                isDescendingDiagonalNeighbor(test, control) ||
-                isRisingDiagonalNeighbor(test, control);
-    }
-
-    private static boolean isHorizontalNeighbor(Point test, Point control) {
-        return control.getY() == test.getY() &&
-                (control.getX() == test.getX() - 1 || control.getX() == test.getX() + 1);
-    }
-
-    private static boolean isVerticalNeighbor(Point test, Point control) {
-        return control.getX() == test.getX() &&
-                (control.getY() == test.getY() - 1 || control.getY() == test.getY() + 1);
-    }
-
-    private static boolean isDescendingDiagonalNeighbor(Point test, Point control) {
-        return (control.getX() == test.getX() + 1 && control.getY() == test.getY() + 1) ||
-                (control.getX() == test.getX() - 1 && control.getY() == test.getY() - 1);
-    }
-
-    private static boolean isRisingDiagonalNeighbor(Point test, Point control) {
-        return (control.getX() == test.getX() + 1 && control.getY() == test.getY() - 1) ||
-                (control.getX() == test.getX() - 1 && control.getY() == test.getY() + 1);
+    private static List<String> neighborCoordinates(Point hasRegionPoint) {
+        Integer x1 = hasRegionPoint.getX();
+        Integer y1 = hasRegionPoint.getY();
+        int x0 = x1 - 1;
+        int x2 = x1 + 1;
+        int y0 = y1 - 1;
+        int y2 = y1 + 1;
+        return Arrays.asList(
+                x0 + " " + y0,
+                x1 + " " + y0,
+                x2 + " " + y0,
+                x0 + " " + y1,
+                x2 + " " + y1,
+                x0 + " " + y2,
+                x1 + " " + y2,
+                x2 + " " + y2);
     }
 
     private static List<Integer> toIntList(String line) {
@@ -225,14 +221,12 @@ class Region {
 class Point {
     private final Integer x;
     private final Integer y;
-    private final boolean isFertile;
     private Integer regionNumber;
 
 
-    public Point(Integer x, Integer y, boolean isFertile) {
+    public Point(Integer x, Integer y) {
         this.x = x;
         this.y = y;
-        this.isFertile = isFertile;
     }
 
     public Integer getX() {
@@ -241,10 +235,6 @@ class Point {
 
     public Integer getY() {
         return y;
-    }
-
-    public boolean isFertile() {
-        return isFertile;
     }
 
     public Integer getRegionNumber() {
