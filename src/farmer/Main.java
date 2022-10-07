@@ -18,20 +18,15 @@ import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] args) throws FileNotFoundException {
-        long l = System.currentTimeMillis();
         List<Point> points = new ArrayList<>(10000);
 
         List<Region> regions = new ArrayList<>(10000);
         fill(points);
-
-        // вначале использовать только плодородные точки, рассмотреть может не плодородные вообще не нужны?
         Map<String, Point> pointByCoordinate = points.parallelStream()
                 .collect(Collectors.toMap(point -> point.getX() + " " + point.getY(), Function.identity()));
-
         setRegions(points, pointByCoordinate, regions, 1);
         Integer result = selectBestAreaAndGetCountPoint(regions);
         System.out.println(result);
-        System.out.println(System.currentTimeMillis() - l);
     }
 
     private static void setRegions(List<Point> allPoints, Map<String, Point> pointByCoordinate, List<Region> regions, Integer numberRegion) {
@@ -222,7 +217,6 @@ class Point {
     private final Integer x;
     private final Integer y;
     private Integer regionNumber;
-
 
     public Point(Integer x, Integer y) {
         this.x = x;
